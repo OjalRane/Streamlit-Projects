@@ -3,20 +3,20 @@ import pandas as pd
 import plotly.express as px
 
 st.set_page_config(
-    page_title="Credit Card Customer Analytics Dashboard",
+    page_title="Bank Customer Churn Dashboard",
     layout="wide"
 )
 
 st.markdown(
     """
     <h1 style='text-align:center; color:#0E76A8;'>
-    Credit Card Customer Analytics Dashboard
+    Bank Customer Churn Analytics Dashboard
     </h1>
     """,
     unsafe_allow_html=True
 )
 
-df = pd.read_csv("credit_card.csv")
+df = pd.read_csv("BankChurners.csv")
 
 df.columns = df.columns.str.strip()
 
@@ -29,27 +29,29 @@ rows = st.sidebar.slider(
     value=3000
 )
 
-selected_chart = st.sidebar.selectbox(
-    "Select Main Chart",
+selected_gender = st.sidebar.multiselect(
+    "Select Gender",
+    options=df["Gender"].unique(),
+    default=df["Gender"].unique()
+)
+
+selected_card = st.sidebar.selectbox(
+    "Select Card Category",
+    df["Card_Category"].unique()
+)
+
+analysis_type = st.sidebar.selectbox(
+    "Select Financial Analysis",
     [
-        "Balance vs Purchases",
-        "Purchases vs Payments",
+        "Customer Age Analysis",
         "Credit Limit Analysis",
-        "Cash Advance Analysis",
-        "Minimum Payments",
-        "Customer Tenure",
-        "Installment Purchases",
-        "Payments vs Credit Limit"
+        "Transaction Analysis",
+        "Income Analysis",
+        "Gender Analysis",
+        "Card Category Analysis",
+        "Utilization Analysis",
+        "Customer Relationship Analysis"
     ]
-)
-
-theme = st.sidebar.radio(
-    "Select Theme",
-    ["Light", "Dark"]
-)
-
-show_data = st.sidebar.checkbox(
-    "Show Raw Dataset"
 )
 
 show_statistics = st.sidebar.checkbox(
@@ -57,89 +59,92 @@ show_statistics = st.sidebar.checkbox(
     value=True
 )
 
-filtered_df = df.head(rows)
-
-st.divider()
-
-st.subheader(
-    "Key Performance Indicators"
+show_kpi = st.sidebar.checkbox(
+    "Show KPI Metrics",
+    value=True
 )
 
-col1, col2, col3, col4 = st.columns(4)
+show_data = st.sidebar.checkbox(
+    "Show Raw Dataset"
+)
 
-with col1:
-
-    st.metric(
-        "Total Customers",
-        len(filtered_df)
+credit_limit_range = st.sidebar.slider(
+    "Credit Limit Range",
+    int(df["Credit_Limit"].min()),
+    int(df["Credit_Limit"].max()),
+    (
+        int(df["Credit_Limit"].min()),
+        int(df["Credit_Limit"].max())
     )
+)
 
-with col2:
-
-    st.metric(
-        "Average Balance",
-        round(
-            filtered_df["BALANCE"].mean(),
-            2
-        )
-    )
-
-with col3:
-
-    st.metric(
-        "Average Purchases",
-        round(
-            filtered_df["PURCHASES"].mean(),
-            2
-        )
-    )
-
-with col4:
-
-    st.metric(
-        "Average Credit Limit",
-        round(
-            filtered_df["CREDIT_LIMIT"].mean(),
-            2
-        )
-    )
-
-col5, col6 = st.columns(2)
-
-with col5:
-
-    st.metric(
-        "Average Payments",
-        round(
-            filtered_df["PAYMENTS"].mean(),
-            2
-        )
-    )
-
-with col6:
-
-    st.metric(
-        "Average Cash Advance",
-        round(
-            filtered_df["CASH_ADVANCE"].mean(),
-            2
-        )
-    )
+filtered_df = df[
+    (df["Gender"].isin(selected_gender)) &
+    (df["Card_Category"] == selected_card) &
+    (df["Credit_Limit"] >= credit_limit_range[0]) &
+    (df["Credit_Limit"] <= credit_limit_range[1])
+].head(rows)
 
 st.divider()
 
-if selected_chart == "Balance vs Purchases":
+if show_kpi:
 
     st.subheader(
-        "1. Balance vs Purchases"
+        "Key Performance Indicators"
     )
 
-    fig1 = px.scatter(
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+
+        st.metric(
+            "Total Customers",
+            len(filtered_df)
+        )
+
+    with col2:
+
+        st.metric(
+            "Average Credit Limit",
+            round(
+                filtered_df["Credit_Limit"].mean(),
+                2
+            )
+        )
+
+    with col3:
+
+        st.metric(
+            "Average Transactions",
+            round(
+                filtered_df["Total_Trans_Amt"].mean(),
+                2
+            )
+        )
+
+    with col4:
+
+        st.metric(
+            "Average Utilization Ratio",
+            round(
+                filtered_df["Avg_Utilization_Ratio"].mean(),
+                2
+            )
+        )
+
+st.divider()
+
+if analysis_type == "Customer Age Analysis":
+
+    st.subheader(
+        "1. Customer Age Analysis"
+    )
+
+    fig1 = px.histogram(
         filtered_df,
-        x="BALANCE",
-        y="PURCHASES",
-        color="TENURE",
-        title="Balance vs Purchases"
+        x="Customer_Age",
+        color="Attrition_Flag",
+        title="Customer Age Distribution"
     )
 
     st.plotly_chart(
@@ -147,18 +152,17 @@ if selected_chart == "Balance vs Purchases":
         use_container_width=True
     )
 
-elif selected_chart == "Purchases vs Payments":
+elif analysis_type == "Credit Limit Analysis":
 
     st.subheader(
-        "2. Purchases vs Payments"
+        "2. Credit Limit Analysis"
     )
 
-    fig2 = px.scatter(
+    fig2 = px.box(
         filtered_df,
-        x="PURCHASES",
-        y="PAYMENTS",
-        color="CREDIT_LIMIT",
-        title="Purchases vs Payments"
+        y="Credit_Limit",
+        color="Card_Category",
+        title="Credit Limit Distribution"
     )
 
     st.plotly_chart(
@@ -166,17 +170,18 @@ elif selected_chart == "Purchases vs Payments":
         use_container_width=True
     )
 
-elif selected_chart == "Credit Limit Analysis":
+elif analysis_type == "Transaction Analysis":
 
     st.subheader(
-        "3. Credit Limit Analysis"
+        "3. Transaction Analysis"
     )
 
-    fig3 = px.box(
+    fig3 = px.scatter(
         filtered_df,
-        y="CREDIT_LIMIT",
-        color="TENURE",
-        title="Credit Limit Distribution"
+        x="Total_Trans_Amt",
+        y="Total_Trans_Ct",
+        color="Attrition_Flag",
+        title="Transactions Amount vs Count"
     )
 
     st.plotly_chart(
@@ -184,18 +189,22 @@ elif selected_chart == "Credit Limit Analysis":
         use_container_width=True
     )
 
-elif selected_chart == "Cash Advance Analysis":
+elif analysis_type == "Income Analysis":
 
     st.subheader(
-        "4. Cash Advance vs Balance"
+        "4. Income Analysis"
     )
 
-    fig4 = px.scatter(
-        filtered_df,
-        x="CASH_ADVANCE",
-        y="BALANCE",
-        color="PAYMENTS",
-        title="Cash Advance vs Balance"
+    income_df = filtered_df.groupby(
+        "Income_Category"
+    )["Credit_Limit"].mean().reset_index()
+
+    fig4 = px.bar(
+        income_df,
+        x="Income_Category",
+        y="Credit_Limit",
+        color="Income_Category",
+        title="Average Credit Limit by Income"
     )
 
     st.plotly_chart(
@@ -203,18 +212,16 @@ elif selected_chart == "Cash Advance Analysis":
         use_container_width=True
     )
 
-elif selected_chart == "Minimum Payments":
+elif analysis_type == "Gender Analysis":
 
     st.subheader(
-        "5. Minimum Payments by Customer"
+        "5. Gender Analysis"
     )
 
-    fig5 = px.bar(
-        filtered_df.head(20),
-        x="CUST_ID",
-        y="MINIMUM_PAYMENTS",
-        color="MINIMUM_PAYMENTS",
-        title="Minimum Payments Analysis"
+    fig5 = px.pie(
+        filtered_df,
+        names="Gender",
+        title="Customer Gender Distribution"
     )
 
     st.plotly_chart(
@@ -222,22 +229,22 @@ elif selected_chart == "Minimum Payments":
         use_container_width=True
     )
 
-elif selected_chart == "Customer Tenure":
+elif analysis_type == "Card Category Analysis":
 
     st.subheader(
-        "6. Customer Tenure Analysis"
+        "6. Card Category Analysis"
     )
 
-    tenure_df = filtered_df.groupby(
-        "TENURE"
-    )["BALANCE"].mean().reset_index()
+    card_df = filtered_df.groupby(
+        "Card_Category"
+    )["Total_Trans_Amt"].mean().reset_index()
 
     fig6 = px.line(
-        tenure_df,
-        x="TENURE",
-        y="BALANCE",
+        card_df,
+        x="Card_Category",
+        y="Total_Trans_Amt",
         markers=True,
-        title="Average Balance by Customer Tenure"
+        title="Average Transaction Amount by Card Category"
     )
 
     st.plotly_chart(
@@ -245,18 +252,17 @@ elif selected_chart == "Customer Tenure":
         use_container_width=True
     )
 
-elif selected_chart == "Installment Purchases":
+elif analysis_type == "Utilization Analysis":
 
     st.subheader(
-        "7. Installment Purchases Analysis"
+        "7. Utilization Analysis"
     )
 
-    fig7 = px.scatter(
-        filtered_df,
-        x="INSTALLMENTS_PURCHASES",
-        y="PURCHASES",
-        color="BALANCE",
-        title="Installment Purchases vs Total Purchases"
+    fig7 = px.area(
+        filtered_df.head(100),
+        x="Customer_Age",
+        y="Avg_Utilization_Ratio",
+        title="Utilization Ratio by Age"
     )
 
     st.plotly_chart(
@@ -267,18 +273,41 @@ elif selected_chart == "Installment Purchases":
 else:
 
     st.subheader(
-        "8. Payments vs Credit Limit"
+        "8. Customer Relationship Analysis"
     )
 
     fig8 = px.scatter(
         filtered_df,
-        x="PAYMENTS",
-        y="CREDIT_LIMIT",
-        color="BALANCE",
-        title="Payments vs Credit Limit"
+        x="Total_Relationship_Count",
+        y="Credit_Limit",
+        color="Attrition_Flag",
+        size="Total_Trans_Amt",
+        title="Relationship Count vs Credit Limit"
     )
 
     st.plotly_chart(
         fig8,
+        use_container_width=True
+    )
+
+    st.subheader(
+        "Summary Statistics"
+    )
+
+    st.dataframe(
+        filtered_df.describe(),
+        use_container_width=True
+    )
+
+if show_data:
+
+    st.divider()
+
+    st.subheader(
+        "Raw Dataset"
+    )
+
+    st.dataframe(
+        filtered_df,
         use_container_width=True
     )
