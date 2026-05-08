@@ -8,26 +8,14 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown(
-    """
-    <h1 style='text-align: center; color: white;'>
-    Manufacturing Industry 4.0 Dashboard
-    </h1>
-
-    <h4 style='text-align: center; color: gray;'>
-    Real-Time Manufacturing Analytics & Visualization
-    </h4>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown("---")
+st.title("Manufacturing Industry 4.0 Dashboard")
+st.markdown("### Streamlit Visualization Dashboard")
 
 df = pd.read_csv("ai4i2020.csv")
 
 df.columns = df.columns.str.strip()
 
-st.sidebar.header("Dashboard Filters")
+st.sidebar.header("Filter Data")
 
 machine_type = st.sidebar.multiselect(
     "Select Machine Type",
@@ -42,7 +30,6 @@ failures = filtered_df["Machine failure"].sum()
 failure_rate = round((failures / total_machines) * 100, 2)
 
 avg_air_temp = round(filtered_df["Air temperature [K]"].mean(), 2)
-avg_rpm = round(filtered_df["Rotational speed [rpm]"].mean(), 2)
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -56,89 +43,71 @@ with col3:
     st.metric("Failure Rate", f"{failure_rate}%")
 
 with col4:
-    st.metric("Average RPM", avg_rpm)
+    st.metric("Average Air Temp", avg_air_temp)
 
-st.markdown("---")
+st.divider()
 
-col1, col2 = st.columns(2)
+st.subheader("Machine Failure Distribution")
 
-with col1:
-
-    fig_pie = px.pie(
-        filtered_df,
-        names="Machine failure",
-        hole=0.5,
-        title="Failure Distribution"
-    )
-
-    fig_pie.update_layout(
-        title_x=0.3,
-        height=500
-    )
-
-    st.plotly_chart(fig_pie, use_container_width=True)
-
-with col2:
-
-    fig_bar = px.bar(
-        filtered_df.groupby("Type")["Machine failure"]
-        .sum()
-        .reset_index(),
-        x="Type",
-        y="Machine failure",
-        title="Machine Type Failure Analysis",
-        text_auto=True
-    )
-
-    fig_bar.update_layout(
-        title_x=0.25,
-        height=500
-    )
-
-    st.plotly_chart(fig_bar, use_container_width=True)
-
-st.markdown("---")
-
-fig_temp = px.line(
+fig_pie = px.pie(
     filtered_df,
-    x=filtered_df.index,
-    y=[
-        "Air temperature [K]",
-        "Process temperature [K]"
-    ],
-    title="Temperature Monitoring Analysis"
+    names="Machine failure",
+    title="Failure vs Non-Failure"
 )
 
-fig_temp.update_layout(
-    title_x=0.35,
-    height=600
+st.plotly_chart(fig_pie, use_container_width=True)
+
+st.subheader("Air Temperature Trend")
+
+fig_temp = px.line(
+    filtered_df.head(200),
+    y="Air temperature [K]",
+    title="Air Temperature Analysis"
 )
 
 st.plotly_chart(fig_temp, use_container_width=True)
 
-st.markdown("---")
+st.subheader("RPM vs Torque Analysis")
 
 fig_scatter = px.scatter(
     filtered_df,
     x="Rotational speed [rpm]",
     y="Torque [Nm]",
     color="Machine failure",
-    size="Tool wear [min]",
-    hover_data=[
-        "Air temperature [K]",
-        "Process temperature [K]"
-    ],
-    title="RPM vs Torque Performance Analysis"
-)
-
-fig_scatter.update_layout(
-    title_x=0.3,
-    height=700
+    title="Machine Performance Analysis"
 )
 
 st.plotly_chart(fig_scatter, use_container_width=True)
 
-st.markdown("---")
+st.subheader("Tool Wear Distribution")
+
+fig_hist = px.histogram(
+    filtered_df,
+    x="Tool wear [min]",
+    color="Machine failure",
+    title="Tool Wear Analysis"
+)
+
+st.plotly_chart(fig_hist, use_container_width=True)
+
+st.subheader("Machine Type Failure Analysis")
+
+machine_failure = (
+    filtered_df.groupby("Type")["Machine failure"]
+    .sum()
+    .reset_index()
+)
+
+fig_bar = px.bar(
+    machine_failure,
+    x="Type",
+    y="Machine failure",
+    title="Failures by Machine Type"
+)
+
+st.plotly_chart(fig_bar, use_container_width=True)
+
+st.subheader("Correlation Heatmap")
 
 corr = filtered_df.select_dtypes(include="number").corr()
 
@@ -146,30 +115,23 @@ fig_heatmap = px.imshow(
     corr,
     text_auto=True,
     aspect="auto",
-    title="Correlation Heatmap"
-)
-
-fig_heatmap.update_layout(
-    title_x=0.38,
-    height=700
+    title="Feature Correlation"
 )
 
 st.plotly_chart(fig_heatmap, use_container_width=True)
 
-st.markdown("---")
+st.subheader("Sensor Monitoring Dashboard")
 
 sensor_data = filtered_df[[
     "Air temperature [K]",
     "Process temperature [K]",
     "Rotational speed [rpm]",
     "Torque [Nm]"
-]]
-
-st.subheader("Real-Time Sensor Monitoring")
+]].head(100)
 
 st.line_chart(sensor_data)
 
-st.markdown("---")
+st.subheader("Machine Health Gauge")
 
 healthy_machines = filtered_df[
     filtered_df["Machine failure"] == 0
@@ -184,27 +146,11 @@ fig_gauge = go.Figure(go.Indicator(
     }
 ))
 
-fig_gauge.update_layout(
-    height=500
-)
-
 st.plotly_chart(fig_gauge, use_container_width=True)
 
+st.subheader("Raw Dataset")
+
+st.dataframe(filtered_df)
+
 st.markdown("---")
-
-st.subheader("Manufacturing Dataset")
-
-st.dataframe(
-    filtered_df,
-    use_container_width=True,
-    height=400
-)
-
-st.markdown(
-    """
-    <h5 style='text-align: center; color: gray;'>
-    Industry 4.0 Manufacturing Analytics Dashboard using Streamlit
-    </h5>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("Industry 4.0 Manufacturing Dashboard using Streamlit")

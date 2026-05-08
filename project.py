@@ -4,6 +4,12 @@ import plotly.express as px
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import r2_score, accuracy_score
+from sklearn.metrics import confusion_matrix
+import plotly.figure_factory as ff
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import accuracy_score, mean_squared_error
+
 
 st.set_page_config(
     page_title="Industry 4.0 ML Dashboard",
@@ -310,17 +316,7 @@ if model_type == "Linear Regression":
         X_test
     )
 
-    r2 = r2_score(
-        y_test,
-        linear_pred
-    )
-
-    st.metric(
-        "Linear Regression R² Score",
-        round(r2, 2)
-    )
-
-    fig7 = px.scatter(
+    fig6 = px.scatter(
         x=y_test,
         y=linear_pred,
         labels={
@@ -330,8 +326,54 @@ if model_type == "Linear Regression":
         title="Actual vs Predicted RPM"
     )
 
+    fig6.update_layout(
+        xaxis_title="Actual RPM",
+        yaxis_title="Predicted RPM"
+    )
+
     st.plotly_chart(
-        fig7,
+        fig6,
+        use_container_width=True
+    )
+
+    r2 = r2_score(
+        y_test,
+        linear_pred
+    )
+
+    mse = mean_squared_error(
+        y_test,
+        linear_pred
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.metric(
+            "R² Score",
+            round(r2, 2)
+        )
+
+    with col2:
+
+        st.metric(
+            "Mean Squared Error",
+            round(mse, 2)
+        )
+
+
+    st.write(
+        "### Linear Regression Coefficients"
+    )
+
+    coefficient_df = pd.DataFrame({
+        "Feature": X_linear.columns,
+        "Coefficient": linear_model.coef_
+    })
+
+    st.dataframe(
+        coefficient_df,
         use_container_width=True
     )
 
@@ -351,7 +393,6 @@ if model_type == "Linear Regression":
             st.success(
                 f"Predicted RPM: {round(prediction[0], 2)}"
             )
-
 else:
 
     st.subheader(
@@ -380,15 +421,14 @@ else:
     logistic_model = LogisticRegression(
         max_iter=1000
     )
-
     logistic_model.fit(
         X_train,
         y_train
-    )
-
+    )   
     logistic_pred = logistic_model.predict(
         X_test
     )
+    
 
     accuracy = accuracy_score(
         y_test,
@@ -398,6 +438,30 @@ else:
     st.metric(
         "Logistic Regression Accuracy",
         f"{round(accuracy * 100, 2)}%"
+    )
+
+    cm = confusion_matrix(
+        y_test,
+        logistic_pred
+    )
+
+    fig8 = ff.create_annotated_heatmap(
+        z=cm,
+        x=["No Failure", "Failure"],
+        y=["No Failure", "Failure"],
+        colorscale="Blues",
+        showscale=True
+    )
+
+    fig8.update_layout(
+        title="Logistic Regression Confusion Matrix",
+        xaxis_title="Predicted",
+        yaxis_title="Actual"
+    )
+
+    st.plotly_chart(
+        fig8,
+        use_container_width=True
     )
 
     result_df = pd.DataFrame({
@@ -411,18 +475,19 @@ else:
         ]
     })
 
-    fig8 = px.bar(
-        result_df,
-        x="Result",
-        y="Count",
-        color="Result",
-        title="Logistic Regression Prediction Results"
-    )
+    if enable_prediction:
 
-    st.plotly_chart(
-        fig8,
-        use_container_width=True
-    )
+        if st.button(
+            "Predict Machine Failure"
+        ):
+
+            failure_prediction = logistic_model.predict([[
+                air_temp,
+                process_temp,
+                rpm,
+                torque,
+                tool_wear
+            ]])
 
     if enable_prediction:
 
