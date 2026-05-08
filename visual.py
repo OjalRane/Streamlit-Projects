@@ -1,156 +1,284 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 st.set_page_config(
-    page_title="Industry 4.0 Dashboard",
+    page_title="Credit Card Customer Analytics Dashboard",
     layout="wide"
 )
 
-st.title("Manufacturing Industry 4.0 Dashboard")
-st.markdown("### Streamlit Visualization Dashboard")
+st.markdown(
+    """
+    <h1 style='text-align:center; color:#0E76A8;'>
+    Credit Card Customer Analytics Dashboard
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
 
-df = pd.read_csv("ai4i2020.csv")
+df = pd.read_csv("credit_card.csv")
 
 df.columns = df.columns.str.strip()
 
-st.sidebar.header("Filter Data")
+st.sidebar.title("Dashboard Controls")
 
-machine_type = st.sidebar.multiselect(
-    "Select Machine Type",
-    options=df["Type"].unique(),
-    default=df["Type"].unique()
+rows = st.sidebar.slider(
+    "Select Number of Rows",
+    min_value=100,
+    max_value=len(df),
+    value=3000
 )
 
-filtered_df = df[df["Type"].isin(machine_type)]
+selected_chart = st.sidebar.selectbox(
+    "Select Main Chart",
+    [
+        "Balance vs Purchases",
+        "Purchases vs Payments",
+        "Credit Limit Analysis",
+        "Cash Advance Analysis",
+        "Minimum Payments",
+        "Customer Tenure",
+        "Installment Purchases",
+        "Payments vs Credit Limit"
+    ]
+)
 
-total_machines = len(filtered_df)
-failures = filtered_df["Machine failure"].sum()
-failure_rate = round((failures / total_machines) * 100, 2)
+theme = st.sidebar.radio(
+    "Select Theme",
+    ["Light", "Dark"]
+)
 
-avg_air_temp = round(filtered_df["Air temperature [K]"].mean(), 2)
+show_data = st.sidebar.checkbox(
+    "Show Raw Dataset"
+)
+
+show_statistics = st.sidebar.checkbox(
+    "Show Summary Statistics",
+    value=True
+)
+
+filtered_df = df.head(rows)
+
+st.divider()
+
+st.subheader(
+    "Key Performance Indicators"
+)
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total Machines", total_machines)
+
+    st.metric(
+        "Total Customers",
+        len(filtered_df)
+    )
 
 with col2:
-    st.metric("Machine Failures", failures)
+
+    st.metric(
+        "Average Balance",
+        round(
+            filtered_df["BALANCE"].mean(),
+            2
+        )
+    )
 
 with col3:
-    st.metric("Failure Rate", f"{failure_rate}%")
+
+    st.metric(
+        "Average Purchases",
+        round(
+            filtered_df["PURCHASES"].mean(),
+            2
+        )
+    )
 
 with col4:
-    st.metric("Average Air Temp", avg_air_temp)
+
+    st.metric(
+        "Average Credit Limit",
+        round(
+            filtered_df["CREDIT_LIMIT"].mean(),
+            2
+        )
+    )
+
+col5, col6 = st.columns(2)
+
+with col5:
+
+    st.metric(
+        "Average Payments",
+        round(
+            filtered_df["PAYMENTS"].mean(),
+            2
+        )
+    )
+
+with col6:
+
+    st.metric(
+        "Average Cash Advance",
+        round(
+            filtered_df["CASH_ADVANCE"].mean(),
+            2
+        )
+    )
 
 st.divider()
 
-st.subheader("Machine Failure Distribution")
+if selected_chart == "Balance vs Purchases":
 
-fig_pie = px.pie(
-    filtered_df,
-    names="Machine failure",
-    title="Failure vs Non-Failure"
-)
+    st.subheader(
+        "1. Balance vs Purchases"
+    )
 
-st.plotly_chart(fig_pie, use_container_width=True)
+    fig1 = px.scatter(
+        filtered_df,
+        x="BALANCE",
+        y="PURCHASES",
+        color="TENURE",
+        title="Balance vs Purchases"
+    )
 
-st.subheader("Air Temperature Trend")
+    st.plotly_chart(
+        fig1,
+        use_container_width=True
+    )
 
-fig_temp = px.line(
-    filtered_df.head(200),
-    y="Air temperature [K]",
-    title="Air Temperature Analysis"
-)
+elif selected_chart == "Purchases vs Payments":
 
-st.plotly_chart(fig_temp, use_container_width=True)
+    st.subheader(
+        "2. Purchases vs Payments"
+    )
 
-st.subheader("RPM vs Torque Analysis")
+    fig2 = px.scatter(
+        filtered_df,
+        x="PURCHASES",
+        y="PAYMENTS",
+        color="CREDIT_LIMIT",
+        title="Purchases vs Payments"
+    )
 
-fig_scatter = px.scatter(
-    filtered_df,
-    x="Rotational speed [rpm]",
-    y="Torque [Nm]",
-    color="Machine failure",
-    title="Machine Performance Analysis"
-)
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
 
-st.plotly_chart(fig_scatter, use_container_width=True)
+elif selected_chart == "Credit Limit Analysis":
 
-st.subheader("Tool Wear Distribution")
+    st.subheader(
+        "3. Credit Limit Analysis"
+    )
 
-fig_hist = px.histogram(
-    filtered_df,
-    x="Tool wear [min]",
-    color="Machine failure",
-    title="Tool Wear Analysis"
-)
+    fig3 = px.box(
+        filtered_df,
+        y="CREDIT_LIMIT",
+        color="TENURE",
+        title="Credit Limit Distribution"
+    )
 
-st.plotly_chart(fig_hist, use_container_width=True)
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
 
-st.subheader("Machine Type Failure Analysis")
+elif selected_chart == "Cash Advance Analysis":
 
-machine_failure = (
-    filtered_df.groupby("Type")["Machine failure"]
-    .sum()
-    .reset_index()
-)
+    st.subheader(
+        "4. Cash Advance vs Balance"
+    )
 
-fig_bar = px.bar(
-    machine_failure,
-    x="Type",
-    y="Machine failure",
-    title="Failures by Machine Type"
-)
+    fig4 = px.scatter(
+        filtered_df,
+        x="CASH_ADVANCE",
+        y="BALANCE",
+        color="PAYMENTS",
+        title="Cash Advance vs Balance"
+    )
 
-st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(
+        fig4,
+        use_container_width=True
+    )
 
-st.subheader("Correlation Heatmap")
+elif selected_chart == "Minimum Payments":
 
-corr = filtered_df.select_dtypes(include="number").corr()
+    st.subheader(
+        "5. Minimum Payments by Customer"
+    )
 
-fig_heatmap = px.imshow(
-    corr,
-    text_auto=True,
-    aspect="auto",
-    title="Feature Correlation"
-)
+    fig5 = px.bar(
+        filtered_df.head(20),
+        x="CUST_ID",
+        y="MINIMUM_PAYMENTS",
+        color="MINIMUM_PAYMENTS",
+        title="Minimum Payments Analysis"
+    )
 
-st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.plotly_chart(
+        fig5,
+        use_container_width=True
+    )
 
-st.subheader("Sensor Monitoring Dashboard")
+elif selected_chart == "Customer Tenure":
 
-sensor_data = filtered_df[[
-    "Air temperature [K]",
-    "Process temperature [K]",
-    "Rotational speed [rpm]",
-    "Torque [Nm]"
-]].head(100)
+    st.subheader(
+        "6. Customer Tenure Analysis"
+    )
 
-st.line_chart(sensor_data)
+    tenure_df = filtered_df.groupby(
+        "TENURE"
+    )["BALANCE"].mean().reset_index()
 
-st.subheader("Machine Health Gauge")
+    fig6 = px.line(
+        tenure_df,
+        x="TENURE",
+        y="BALANCE",
+        markers=True,
+        title="Average Balance by Customer Tenure"
+    )
 
-healthy_machines = filtered_df[
-    filtered_df["Machine failure"] == 0
-].shape[0]
+    st.plotly_chart(
+        fig6,
+        use_container_width=True
+    )
 
-fig_gauge = go.Figure(go.Indicator(
-    mode="gauge+number",
-    value=healthy_machines,
-    title={"text": "Healthy Machines"},
-    gauge={
-        "axis": {"range": [0, total_machines]}
-    }
-))
+elif selected_chart == "Installment Purchases":
 
-st.plotly_chart(fig_gauge, use_container_width=True)
+    st.subheader(
+        "7. Installment Purchases Analysis"
+    )
 
-st.subheader("Raw Dataset")
+    fig7 = px.scatter(
+        filtered_df,
+        x="INSTALLMENTS_PURCHASES",
+        y="PURCHASES",
+        color="BALANCE",
+        title="Installment Purchases vs Total Purchases"
+    )
 
-st.dataframe(filtered_df)
+    st.plotly_chart(
+        fig7,
+        use_container_width=True
+    )
 
-st.markdown("---")
-st.markdown("Industry 4.0 Manufacturing Dashboard using Streamlit")
+else:
+
+    st.subheader(
+        "8. Payments vs Credit Limit"
+    )
+
+    fig8 = px.scatter(
+        filtered_df,
+        x="PAYMENTS",
+        y="CREDIT_LIMIT",
+        color="BALANCE",
+        title="Payments vs Credit Limit"
+    )
+
+    st.plotly_chart(
+        fig8,
+        use_container_width=True
+    )
