@@ -476,10 +476,7 @@ else:
     })
 
     if enable_prediction:
-
-        if st.button(
-            "Predict Machine Failure"
-        ):
+        if st.button("Predict Machine Failure", key="logistic_button"):
 
             failure_prediction = logistic_model.predict([[
                 air_temp,
@@ -490,10 +487,6 @@ else:
             ]])
 
     if enable_prediction:
-
-        if st.button(
-            "Predict Machine Failure"
-        ):
 
             failure_prediction = logistic_model.predict([[
                 air_temp,
